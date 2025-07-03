@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
+
+import '../../models/history_entry.dart';
 
 class Calenderpg extends StatefulWidget {
   const Calenderpg({super.key});
@@ -11,13 +15,21 @@ class Calenderpg extends StatefulWidget {
 class _CalenderpgState extends State<Calenderpg> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  Map<DateTime, List<String>> medicineSchedule = {
-    DateTime.utc(2025, 7, 2): ['Paracetamol 500mg', 'Vitamin D'],
-    DateTime.utc(2025, 7, 3): ['Ibuprofen'],
-  };
 
-  List<String> _getMedicinesForDay(DateTime day) {
-    return medicineSchedule[DateTime.utc(day.year, day.month, day.day)] ?? [];
+  List<Map<String, String>> _getMedicinesForDay(DateTime day) {
+    final historyBox = Hive.box<HistoryEntry>('historyBox');
+    final selectedDate = DateTime(day.year, day.month, day.day);
+
+    return historyBox.values
+        .where((entry) =>
+            entry.date.year == selectedDate.year &&
+            entry.date.month == selectedDate.month &&
+            entry.date.day == selectedDate.day)
+        .map((entry) => {
+              'name': entry.medicineName,
+              'status': entry.status,
+            })
+        .toList();
   }
 
   @override
@@ -28,16 +40,18 @@ class _CalenderpgState extends State<Calenderpg> {
 
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-
-        title: const Text('Calendar View',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Calendar View',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.green[700],
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TableCalendar(
               firstDay: DateTime.utc(2020),
@@ -70,17 +84,27 @@ class _CalenderpgState extends State<Calenderpg> {
             ...selectedMeds.map(
               (med) => Card(
                 child: ListTile(
-                  leading: const Icon(Icons.medication),
-                  title: Text(med),
-                  trailing: ElevatedButton(
+                  leading: const Icon(
+                    Icons.do_not_disturb_on_outlined,
+                    color: Colors.amber,
+                  ),
+                  title: Text(med['name']!,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.black)),
+                  trailing: OutlinedButton(
                     onPressed: () {
                       // TODO: Implement edit action
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber[800],
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: med['status'] == 'taken'
+                          ? const Color.fromARGB(255, 121, 255, 125)
+                          : Color.fromARGB(255, 255, 128, 69),
                       foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
-                    child: const Text('Edit'),
+                    child: Text(med['status']!), // ✅ Status displayed
                   ),
                 ),
               ),

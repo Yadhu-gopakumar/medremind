@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+
+import '../../models/medicine.dart';
 
 class EditMedicinePage extends StatefulWidget {
-  final String initialName;
-  final String initialDosage;
-  final List<TimeOfDay?>? initialTimes; // List of times for doses
-  final DateTime? initialTillDate;
-  final int initialStock;
-  final int initialTimesPerDay;
+  final Medicine medicine;
+  final dynamic medicineKey;
 
   const EditMedicinePage({
     super.key,
-    this.initialName = "Paracetamol",
-    this.initialDosage = "500mg",
-    this.initialTimes,
-    this.initialTillDate,
-    this.initialStock = 10,
-    this.initialTimesPerDay = 1,
+    required this.medicine,
+    required this.medicineKey,
   });
 
   @override
@@ -29,21 +24,22 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
   DateTime? _selectedDate;
   int? _timesPerDay;
   late List<TimeOfDay?> _doseTimes;
-
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialName);
-    _dosageController = TextEditingController(text: widget.initialDosage);
-    _stockController = TextEditingController(text: widget.initialStock.toString());
-    _selectedDate = widget.initialTillDate ?? DateTime.now().add(const Duration(days: 30));
-    _timesPerDay = widget.initialTimesPerDay;
-    _doseTimes = List<TimeOfDay?>.generate(
-      4,
-      (i) => (widget.initialTimes != null && i < widget.initialTimes!.length)
-          ? widget.initialTimes![i]
-          : null,
-    );
+    _nameController = TextEditingController(text: widget.medicine.name);
+    _dosageController = TextEditingController(text: widget.medicine.dosage);
+    _stockController =
+        TextEditingController(text: widget.medicine.quantityLeft.toString());
+    _selectedDate = widget.medicine.expiryDate;
+    _timesPerDay = widget.medicine.dailyIntakeTimes.length;
+    _doseTimes = widget.medicine.dailyIntakeTimes.map((t) {
+      final parts = t.split(":");
+      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    }).toList();
+
+    //  Ensure _doseTimes has at least 4 slots
+    _doseTimes = List<TimeOfDay?>.from(_doseTimes)..length = 4;
   }
 
   Future<void> _pickTime(BuildContext context, int index) async {
@@ -92,7 +88,7 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
     }
   }
 
-  void _saveChanges() {
+  void _saveChanges() async {
     bool allTimesSelected = _timesPerDay != null &&
         List.generate(_timesPerDay!, (i) => _doseTimes[i])
             .every((t) => t != null);
@@ -103,14 +99,32 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
         _selectedDate != null &&
         _timesPerDay != null &&
         allTimesSelected) {
-      // TODO: Implement save logic with Hive or backend
+      final box = await Hive.openBox<Medicine>('medicinesBox');
+      int addedQuantity = int.parse(_stockController.text.trim());
+
+      final updatedMedicine = Medicine(
+        name: _nameController.text.trim(),
+        dosage: _dosageController.text.trim(),
+        expiryDate: _selectedDate!,
+        dailyIntakeTimes: _doseTimes
+            .take(_timesPerDay!)
+            .map((t) =>
+                "${t!.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}")
+            .toList(),
+        quantityLeft: widget.medicine.quantityLeft + addedQuantity,
+        totalQuantity: widget.medicine.totalQuantity + addedQuantity,
+        refillThreshold: widget.medicine.refillThreshold,
+      );
+
+      box.put(widget.medicineKey, updatedMedicine);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Medicine details updated!')),
+        const SnackBar(content: Text('Medicine updated!')),
       );
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields!')),
+        const SnackBar(content: Text('Please fill all fields')),
       );
     }
   }
@@ -125,7 +139,8 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Edit Medicine',
-          style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.green[700],
         centerTitle: true,
@@ -141,7 +156,8 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
                 decoration: InputDecoration(
                   labelText: 'Medicine Name',
                   prefixIcon: Icon(Icons.medical_services, color: mainGreen),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 18),
@@ -150,8 +166,10 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
                 controller: _dosageController,
                 decoration: InputDecoration(
                   labelText: 'Dosage (e.g. 500mg)',
-                  prefixIcon: Icon(Icons.format_list_numbered, color: mainGreen),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon:
+                      Icon(Icons.format_list_numbered, color: mainGreen),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 18),
@@ -181,9 +199,7 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
                     },
                     selectedColor: Colors.green[700],
                     labelStyle: TextStyle(
-                      color: _timesPerDay == value
-                          ? Colors.white
-                          : mainGreen,
+                      color: _timesPerDay == value ? Colors.white : mainGreen,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -204,7 +220,8 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Time for dose ${i + 1}',
-                            prefixIcon: Icon(Icons.access_time, color: mainGreen),
+                            prefixIcon:
+                                Icon(Icons.access_time, color: mainGreen),
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12)),
                           ),
@@ -232,7 +249,8 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
                   decoration: InputDecoration(
                     labelText: 'Till Date',
                     prefixIcon: Icon(Icons.date_range, color: mainGreen),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
                     _selectedDate == null
@@ -251,9 +269,10 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
                 controller: _stockController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: 'Stock Quantity',
+                  labelText: 'Add Quantity(new stock)',
                   prefixIcon: Icon(Icons.inventory_2, color: mainGreen),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 32),
