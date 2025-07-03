@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:medremind/screens/medicine/edit_medicine_screen.dart';
 import '../../constants/hive_keys.dart';
+import '../../main.dart';
 import '../../models/medicine.dart';
 
 class RefillTrackerPage extends StatelessWidget {
@@ -10,7 +10,6 @@ class RefillTrackerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color backgroundGreen = const Color(0xFF166D5B);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -93,34 +92,35 @@ class RefillTrackerPage extends StatelessWidget {
                           ),
                         ),
                         Row(
-  mainAxisAlignment: MainAxisAlignment.end,
-  children: [
-    TextButton.icon(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => EditMedicinePage(
-              medicine: med,
-              medicineKey: med.key,
-            ),
-          ),
-        );
-      },
-      icon: const Icon(Icons.edit, color: Colors.white),
-      label: const Text("Edit", style: TextStyle(color: Colors.white)),
-    ),
-    const SizedBox(width: 8),
-    TextButton.icon(
-      onPressed: () {
-        _showDeleteDialog(context, box, med.key);
-      },
-      icon: const Icon(Icons.delete, color: Colors.red),
-      label: const Text("Delete", style: TextStyle(color: Colors.red)),
-    ),
-  ],
-),
-
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditMedicinePage(
+                                      medicine: med,
+                                      medicineKey: med.key,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.edit, color: Colors.white),
+                              label: const Text("Edit",
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton.icon(
+                              onPressed: () {
+                                _showDeleteDialog(context, box, med.key);
+                              },
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              label: const Text("Delete",
+                                  style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -133,7 +133,8 @@ class RefillTrackerPage extends StatelessWidget {
     );
   }
 
-  Widget _statusChip(String text, Color color, {Color textColor = Colors.white}) {
+  Widget _statusChip(String text, Color color,
+      {Color textColor = Colors.white}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -163,8 +164,15 @@ class RefillTrackerPage extends StatelessWidget {
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
-              box.delete(key);
+            onPressed: () async {
+              // Cancel notifications (max 4 doses per day)
+              for (int i = 0; i < 4; i++) {
+                await flutterLocalNotificationsPlugin.cancel(key.hashCode + i);
+              }
+
+              // Delete medicine from box
+              await box.delete(key);
+
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text("${medicine?.name} deleted.")),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
+import '../../main.dart';
 import '../../models/medicine.dart';
+import '../../services/schedule_notification.dart';
 
 class EditMedicinePage extends StatefulWidget {
   final Medicine medicine;
@@ -118,6 +120,33 @@ class _EditMedicinePageState extends State<EditMedicinePage> {
 
       box.put(widget.medicineKey, updatedMedicine);
 
+// After saving updatedMedicine:
+      for (int i = 0; i < 4; i++) {
+        await flutterLocalNotificationsPlugin
+            .cancel(widget.medicineKey.hashCode + i);
+      }
+
+      for (int i = 0; i < _timesPerDay!; i++) {
+        final time = _doseTimes[i]!;
+        DateTime scheduledDateTime = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+          time.hour,
+          time.minute,
+        );
+
+  // If time is in the past today, schedule for tomorrow
+  if (scheduledDateTime.isBefore(DateTime.now())) {
+    scheduledDateTime = scheduledDateTime.add(const Duration(days: 1));
+  }
+        await scheduleMedicineNotification(
+          id: widget.medicineKey.hashCode + i, // unique id for each dose
+          title: 'Time to take ${_nameController.text.trim()}',
+          body: 'Dosage: ${_dosageController.text.trim()}',
+          dateTime: scheduledDateTime,
+        );
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Medicine updated!')),
       );

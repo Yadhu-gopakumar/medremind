@@ -49,31 +49,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color backgroundGreen = const Color(0xFF166D5B);
+    const Color backgroundGreen = Color(0xFF166D5B);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('MedRemind',
             style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2)),
         actions: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.green[300],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.all(3),
-            margin: const EdgeInsets.only(right: 10, top: 5, bottom: 5),
-            child: IconButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => Profilepg()),
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0, top: 5, bottom: 5),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.green[300],
+                borderRadius: BorderRadius.circular(10),
               ),
-              icon: const Icon(Icons.person_3_outlined,
-                  color: Colors.white, size: 28),
+              padding: const EdgeInsets.all(3),
+              // margin: const EdgeInsets.only(right: 12, top: 7, bottom: 7),
+              child: IconButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => Profilepg()),
+                ),
+                icon: const Icon(Icons.person_3_outlined,
+                    color: Colors.white, size: 28),
+              ),
             ),
           )
         ],
@@ -111,10 +114,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildProgressBar(progress, takenCount, todayMeds.length),
                   _buildQuickActions(context, backgroundGreen),
                   const Padding(
-                    padding: EdgeInsets.only(left: 20.0, bottom: 4),
+                    padding: EdgeInsets.only(left: 20.0, bottom: 3, top: 18),
                     child: Text("Today's Schedule",
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 10),
                   ...todayMeds.map((entry) {
@@ -140,7 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         );
                         // Decrease quantityLeft and save it
-                        final medBox = Hive.box<Medicine>(medicinesBox);
                         final key = med.key;
                         if (key != null) {
                           med.quantityLeft =
@@ -169,11 +171,23 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.only(top: 20, bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.green[800],
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+        gradient: LinearGradient(
+          colors: [Colors.green.shade800, Colors.green.shade400],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(50),
+          bottomRight: Radius.circular(50),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            offset: Offset(0, 6), // x=0, y=6 (bottom shadow)
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ],
       ),
       child: Center(
         child: Column(
@@ -184,12 +198,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(
                   width: 140,
                   height: 140,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 10,
-                    backgroundColor: Colors.white24,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Colors.white),
+                  //   child: CircularProgressIndicator(
+                  //     value: progress,
+                  //     strokeWidth: 12,
+                  //     backgroundColor: Colors.white24,
+                  //     valueColor:
+                  //          AlwaysStoppedAnimation<Color>(Colors.yellow),
+                  //   ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.green[800],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 12,
+                      backgroundColor: Colors.white24,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   ),
                 ),
                 Text("${(progress * 100).toInt()}%",
@@ -202,18 +235,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Text("$taken of $total doses",
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            const Text("Today's Progress",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1.1)),
+            const SizedBox(height: 15),
+            const Padding(
+              padding: EdgeInsets.only(top: 10.0, bottom: 10),
+              child: Text("Today's Progress",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.1)),
+            ),
           ],
         ),
       ),
@@ -226,9 +262,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(height: 14),
           const Text("Quick Actions",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 13),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -288,20 +325,21 @@ class _HomeScreenState extends State<HomeScreen> {
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Card(
+        elevation: 5,
         color: color,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.33,
+            width: MediaQuery.of(context).size.width * 0.35,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 40, color: Colors.white),
+                Icon(icon, size: 33, color: Colors.white),
                 const SizedBox(height: 8),
                 Text(label,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14, color: Colors.white)),
+                    style: const TextStyle(fontSize: 16, color: Colors.white)),
               ],
             ),
           ),
